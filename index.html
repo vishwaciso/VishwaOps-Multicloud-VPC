@@ -104,6 +104,14 @@ pre.ascii{
 .tile:hover{transform:translateY(-4px); box-shadow:0 16px 34px rgba(0,0,0,.12); border-color:rgba(26,115,232,.45);}
 .arrow{font-size:22px; text-align:center; align-self:center}
 
+/* ===== Table (Differences) ===== */
+.table-wrap{overflow:auto}
+table.diff{border-collapse:separate; border-spacing:0; width:100%; min-width:880px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow)}
+table.diff th, table.diff td{padding:12px 10px; text-align:left; border-bottom:1px solid var(--border);}
+table.diff th{position:sticky; top:0; background:linear-gradient(0deg, rgba(255,255,255,0), rgba(255,255,255,.5)), var(--tile); color:#0d3b66; font-weight:900;}
+table.diff tr:last-child td{border-bottom:0}
+table.diff td em{color:var(--muted)}
+
 /* ===== Reveal animation ===== */
 .reveal{opacity:0; transform:translateY(10px) scale(.98); animation:reveal .6s ease forwards}
 .reveal.delay1{animation-delay:.08s}
@@ -117,6 +125,14 @@ footer a{color:#fff; text-decoration:underline;}
 
 /* ===== Hidden ===== */
 .hidden{display:none}
+
+/* ===== Voice Gate Banner ===== */
+.voice-gate{
+  position:fixed; inset:auto 12px 12px 12px; z-index:60;
+  background:var(--card); border:2px dashed var(--accent); padding:12px; border-radius:16px; box-shadow:var(--shadow);
+  display:flex; gap:12px; align-items:center; justify-content:space-between;
+}
+.voice-gate strong{color:#0d3b66}
 </style>
 </head>
 <body>
@@ -132,6 +148,7 @@ footer a{color:#fff; text-decoration:underline;}
         <button class="tab" id="tab-aws" onclick="navTo('aws')">🟧 AWS VPC Labs</button>
         <button class="tab" id="tab-gcp" onclick="navTo('gcp')">🔵 GCP VPC Labs</button>
         <button class="tab" id="tab-azure" onclick="navTo('azure')">🟪 Azure VNet Labs</button>
+        <button class="tab" id="tab-diff" onclick="navTo('diff')">⚖️ Differences</button>
       </div>
     </div>
   </header>
@@ -195,9 +212,9 @@ footer a{color:#fff; text-decoration:underline;}
         </div>
       </section>
 
-      <!-- ================= AWS ================= -->
+      <!-- ================= AWS (18 scenarios) ================= -->
       <section id="tabContent-aws" class="hidden">
-        <p class="subtitle">Most-important AWS VPC scenarios (curated). Click any card to hear the lab title and load details + diagrams.</p>
+        <p class="subtitle">Click a card to load details + animated diagram. The voice will announce each scenario clearly.</p>
         <div class="section scenario-list" id="awsList"></div>
 
         <section class="section" id="awsDetail">
@@ -279,47 +296,130 @@ footer a{color:#fff; text-decoration:underline;}
         </section>
       </section>
 
+      <!-- ================= DIFFERENCES ================= -->
+      <section id="tabContent-diff" class="hidden">
+        <div class="section card">
+          <h2>Cloud Networking – Key Differences (AWS vs GCP vs Azure)</h2>
+          <p class="subtitle">Quick reference for gotchas before labs. Aligns with your Architecture/Setup/Outcome docs. :contentReference[oaicite:11]{index=11} :contentReference[oaicite:12]{index=12} :contentReference[oaicite:13]{index=13}</p>
+          <div class="table-wrap">
+            <table class="diff">
+              <thead>
+                <tr>
+                  <th>Topic</th>
+                  <th>🟧 AWS (VPC)</th>
+                  <th>🔵 GCP (VPC)</th>
+                  <th>🟪 Azure (VNet)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>VPC/VNet creation & CIDR</strong></td>
+                  <td>Choose VPC CIDR at creation (e.g., 10.0.0.0/16). Secondary CIDRs can be added later.</td>
+                  <td><em>Default VPC pre-created</em> in most regions. For custom: you define CIDRs on <strong>subnets</strong>; the VPC is a regional container.</td>
+                  <td>Choose VNet CIDR at creation (e.g., 10.20.0.0/16). You can add address spaces later.</td>
+                </tr>
+                <tr>
+                  <td><strong>Subnet model</strong></td>
+                  <td>Subnets are AZ-scoped; route tables explicitly associated (or main RT). SG + NACL.</td>
+                  <td>Subnets are region-scoped ranges; firewall rules are VPC/project level (tags/SAs common).</td>
+                  <td>Subnets are zone-scoped; NSG + optional UDR per subnet/NIC.</td>
+                </tr>
+                <tr>
+                  <td><strong>Internet access object</strong></td>
+                  <td>Internet Gateway (IGW) + RT 0.0.0.0/0 → IGW (public subnets).</td>
+                  <td>Default system route + external IP; no explicit IGW resource object.</td>
+                  <td>System route + public IP; no discrete IGW object.</td>
+                </tr>
+                <tr>
+                  <td><strong>Private egress (NAT)</strong></td>
+                  <td>NAT Gateway (managed) or NAT Instance (DIY).</td>
+                  <td>Cloud NAT (with Cloud Router). No NAT instance pattern recommended.</td>
+                  <td>NAT Gateway associated to subnet (zonal).</td>
+                </tr>
+                <tr>
+                  <td><strong>Private services</strong></td>
+                  <td>PrivateLink (Endpoint Service ↔ Interface Endpoint).</td>
+                  <td>Private Service Connect (PSC).</td>
+                  <td>Private Link (PLS ↔ Private Endpoint).</td>
+                </tr>
+                <tr>
+                  <td><strong>Cross network</strong></td>
+                  <td>VPC Peering (non-transitive) / TGW (hub-and-spoke).</td>
+                  <td>VPC Peering (non-transitive); Cloud Router + VPN/Interconnect.</td>
+                  <td>VNet Peering / Virtual WAN Hub.</td>
+                </tr>
+                <tr>
+                  <td><strong>DNS private</strong></td>
+                  <td>Route 53 PHZ + Resolver In/Out endpoints.</td>
+                  <td>Cloud DNS private zones; DNS policies; PSC naming.</td>
+                  <td>Azure Private DNS zones; inbound/outbound resolvers.</td>
+                </tr>
+                <tr>
+                  <td><strong>Common student gotcha</strong></td>
+                  <td>Wrong RT association or missing SG rule.</td>
+                  <td>Assuming VPC CIDR is set on VPC; reality: you mostly set subnet CIDRs.</td>
+                  <td>Forgetting NAT GW/UDR, or NSG blocks traffic.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section card">
+          <h3>Voice-over topics (tap to hear)</h3>
+          <div class="scenario-list" id="diffList"></div>
+          <div class="card">
+            <h3 id="diffTitle">Topic</h3>
+            <p id="diffBody"></p>
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
   <footer>© 2025 VishwaOps • Teach & build with confidence</footer>
 
+  <!-- Voice permission banner (mobile friendly) -->
+  <div id="voiceGate" class="voice-gate">
+    <div><strong>🔊 Enable Voice</strong><br><span class="small">Tap to allow voice guidance on this device (required by mobile browsers).</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" id="enableVoiceBtn">Enable Voice</button>
+      <button class="btn" onclick="document.getElementById('voiceGate').remove()">Hide</button>
+    </div>
+  </div>
+
 <script>
 /* ================= Theme ================= */
 const THEME_KEY='vishwaops-theme';
 function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem(THEME_KEY, t); }
-document.getElementById('themeBtn').onclick = ()=>{ const cur=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; applyTheme(cur); playClick(); };
+document.getElementById('themeBtn').onclick = ()=>{ const cur=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; applyTheme(cur); clickBeep(); };
 applyTheme(localStorage.getItem(THEME_KEY)||'light'); // default to white
 
-/* ================= Click Sound (WebAudio) ================= */
-let audioCtx;
-function playClick(){
-  try{
-    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+/* ================= Audio + Voice (mobile-safe) ================= */
+let audioCtx, VOICE_ENABLED = false;
+function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return audioCtx; }
+function clickBeep(){
+  try{ const ctx=ensureAudio(), o=ctx.createOscillator(), g=ctx.createGain();
     o.type='triangle'; o.frequency.value=920;
-    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.09);
-    o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.1);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.11);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.12);
   }catch(e){}
 }
-document.addEventListener('click', (e)=>{ if(e.target.closest('button,.item,.tab,.btn')) playClick(); }, true);
+document.addEventListener('click', (e)=>{ if(e.target.closest('button,.item,.tab,.btn')) clickBeep(); }, true);
 
-/* ================= Confetti (no libs) ================= */
-function confetti(){
-  const c=document.createElement('canvas'); c.width=window.innerWidth; c.height=200; c.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:100';
-  document.body.appendChild(c);
-  const ctx=c.getContext('2d'); const pieces=[...Array(120)].map(()=>({x:Math.random()*c.width,y:Math.random()*-200,vy:2+Math.random()*3,w:6+Math.random()*6,h:2+Math.random()*3,clr:`hsl(${Math.random()*360},90%,65%)`}));
-  let t=0; (function draw(){
-    ctx.clearRect(0,0,c.width,c.height);
-    pieces.forEach(p=>{ p.y+=p.vy; ctx.fillStyle=p.clr; ctx.fillRect(p.x,p.y,p.w,p.h); });
-    t++; if(t<130){ requestAnimationFrame(draw);} else { c.remove(); }
-  })();
+function voiceChime(){
+  if(!VOICE_ENABLED) return;
+  try{ const ctx=ensureAudio(), o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.value=1400;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.18);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.19);
+  }catch(e){}
 }
-
-/* ================= Voice (robust, clear) ================= */
-let spokeWelcome=false;
 function chooseVoice(){
   const s=window.speechSynthesis; if(!s) return null;
   const vs=s.getVoices()||[];
@@ -328,31 +428,33 @@ function chooseVoice(){
       || vs[0] || null;
 }
 function speak(text){
+  if(!VOICE_ENABLED) return;
   try{
     const s=window.speechSynthesis; if(!s) return;
     const u=new SpeechSynthesisUtterance(text);
     const v=chooseVoice(); if(v) u.voice=v;
-    u.rate=0.98; u.pitch=1.0; u.volume=1.0;
-    s.cancel(); s.speak(u);
+    u.rate=0.95; u.pitch=1.0; u.volume=1.0;
+    s.cancel(); voiceChime(); setTimeout(()=>s.speak(u), 120);
   }catch(e){}
 }
-function welcomeOnce(){
-  if(spokeWelcome) return;
-  spokeWelcome=true;
-  speak('Welcome to VishwaOps V P C lab scenarios in multi cloud');
-  confetti();
+
+// Gate: user tap to enable on iOS/Android
+document.getElementById('enableVoiceBtn').addEventListener('click', ()=>{
+  ensureAudio().resume().then(()=>{
+    VOICE_ENABLED = true;
+    document.getElementById('voiceGate').remove();
+    speak('Voice enabled. Welcome to VishwaOps V P C lab scenarios in multi cloud.');
+    confetti();
+  });
+}, {passive:true});
+
+/* ================= Confetti (no libs) ================= */
+function confetti(){
+  const c=document.createElement('canvas'); c.width=window.innerWidth; c.height=200; c.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:100';
+  document.body.appendChild(c);
+  const ctx=c.getContext('2d'); const pieces=[...Array(120)].map(()=>({x:Math.random()*c.width,y:Math.random()*-200,vy:2+Math.random()*3,w:6+Math.random()*6,h:2+Math.random()*3,clr:`hsl(${Math.random()*360},90%,65%)`}));
+  let t=0; (function draw(){ ctx.clearRect(0,0,c.width,c.height); pieces.forEach(p=>{ p.y+=p.vy; ctx.fillStyle=p.clr; ctx.fillRect(p.x,p.y,p.w,p.h); }); if(++t<130){ requestAnimationFrame(draw);} else { c.remove(); } })();
 }
-// Try on load (may be blocked), also bind to first click/touch.
-window.addEventListener('load', ()=>{
-  // voices may load async
-  if(window.speechSynthesis){
-    window.speechSynthesis.onvoiceschanged = ()=> welcomeOnce();
-    setTimeout(()=>welcomeOnce(), 1200); // fallback
-  } else {
-    setTimeout(()=>welcomeOnce(), 600);
-  }
-}, {once:true});
-document.addEventListener('pointerdown', ()=>welcomeOnce(), {once:true});
 
 /* ================= Tabs ================= */
 function setActiveTab(id){
@@ -360,16 +462,17 @@ function setActiveTab(id){
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelectorAll('[id^="tabContent-"]').forEach(s=>s.classList.add('hidden'));
   document.getElementById('tabContent-'+id).classList.remove('hidden');
-  // reveal animation on show
   document.querySelectorAll('#tabContent-'+id+' .section').forEach((el,i)=>{ el.classList.add('reveal'); el.style.animationDelay=(i*0.05)+'s'; });
 }
 function navTo(id){
   setActiveTab(id);
+  if(id==='home') speak('Welcome to VishwaOps V P C Networking in Multi Cloud');
   if(id==='aws') speak('Welcome to A W S V P C lab');
   if(id==='gcp') speak('Welcome to G C P V P C lab');
   if(id==='azure') speak('Welcome to Azure V Net lab');
+  if(id==='diff') speak('Cloud networking differences across A W S, G C P and Azure');
 }
-function goHome(){ setActiveTab('home'); speak('Welcome to VishwaOps V P C Networking in Multi Cloud'); }
+function goHome(){ navTo('home'); }
 
 /* ================= Box diagram helper ================= */
 function renderBox(container, boxes){
@@ -386,119 +489,154 @@ function renderBox(container, boxes){
 }
 
 /* =================== LAB DATA =================== */
-/* AWS — IMPORTANT scenarios (curated from all previous versions) */
+/* 18 AWS scenarios */
 const AWS_LABS = [
-  {
-    id:'aws1', say:'Lab 1 – scenario 1: V P C core lab',
-    tag:'Lab-1 • Scenario-1',
-    title:'VPC Core Lab: 10.0.0.0/16 + 1 Public + 2 Private + IGW + RTs + EC2 tests',
-    outcome:'Public subnet has Internet via IGW; private subnets are isolated from Internet but routable inside the VPC.',
-    build:[
-      'VPC CIDR: 10.0.0.0/16',
-      'Subnets: Public 10.0.1.0/24; Private-App 10.0.3.0/24; Private-DB 10.0.4.0/24',
-      'IGW attached; Public-RT: 0.0.0.0/0 → IGW; Private-RT: no default Internet route',
-      'EC2s: Bastion/Web in Public; App EC2 in Private-App; DB test EC2 in Private-DB'
-    ],
-    steps:[
-      'Create VPC 10.0.0.0/16.',
-      'Create subnets across AZs (10.0.1.0/24 public, 10.0.3.0/24 private-app, 10.0.4.0/24 private-db). :contentReference[oaicite:11]{index=11}',
-      'Create & attach IGW.',
-      'Public-RT: add 0.0.0.0/0 → IGW; associate to Public subnet.',
-      'Private-RT: no default route; associate to both private subnets.',
-      'Launch EC2s (bastion with public IP; app/db private only).',
-      'SGs: Public allow 22/80 from your IP; Private allow SSH from Bastion SG.'
-    ],
-    tests:[
-      'From Bastion: curl https://aws.amazon.com (works via IGW).',
-      'From Private App: Internet should NOT work (no NAT yet).',
-      'Private App ↔ Private DB reachable if SG allows.'
-    ],
-    real:'Baseline landing zone before NAT/ALB/RDS.',
-    ascii:`
-🌐 User Laptop
-   |
-   |  SSH / Browser
-   v
-+--------------------------------------------------------------------------------+
-|                               Mumbai Region VPC                                 |
-|                                  10.0.0.0/16                                    |
-|                                                                                |
-|   +--------------------------+        +----------------------------+            |
-|   | Public Subnet            |        | Internet Gateway (IGW)     |            |
-|   | CIDR: 10.0.1.0/24        |        +----------------------------+            |
-|   | Public EC2 / Bastion     |<----->| 0.0.0.0/0                   |            |
-|   | 10.0.1.10                |        |                            |            |
-|   +--------------------------+        +----------------------------+            |
-|            |                                                                     |
-|            | Internal SSH / App Traffic                                          |
-|            v                                                                     |
-|  Public Route Table (0.0.0.0/0 → IGW)                                            |
-|                                                                                |
-|   +----------------+   +----------------+   +----------------+                   |
-|   | Private Subnet |   | Private Subnet |   | Private Subnet |                   |
-|   | 1: 10.0.2.0/24 |   | 2: 10.0.3.0/24 |   | 3: 10.0.4.0/24 |                   |
-|   | Private EC2 1  |   | Private EC2 2  |   | Private EC2 3  |                   |
-|   | 10.0.2.10      |<--| 10.0.3.10      |<--| 10.0.4.10      |                   |
-|   +----------------+   +----------------+   +----------------+                   |
-|           ^                  ^                  ^                                |
-|           |                  |                  |                                |
-|           +------------------+------------------+                                |
-|                        Private Route Table (internal routing only)               |
-+--------------------------------------------------------------------------------+
-`.trim(),
-    box:[
-      {title:'🌍 User',desc:'Laptop'}, 'arrow',
-      {title:'🌐 IGW',desc:'Internet Gateway'}, 'arrow',
-      {title:'🛰️ Public EC2',desc:'Bastion/Web'}, 'arrow',
-      {title:'🔒 Private App',desc:'EC2'}, 'arrow',
-      {title:'🗄️ Private DB',desc:'EC2 (test)'}
-    ]
+  { id:'aws1',  say:'Lab 1: V P C core lab', tag:'Lab-1', title:'Core VPC: 10.0.0.0/16 + 1 Public + 2 Private + IGW + RTs',
+    outcome:'Public has Internet via IGW; private isolated; intra-VPC works.',
+    build:['VPC 10.0.0.0/16','Public 10.0.1.0/24','Private-App 10.0.3.0/24','Private-DB 10.0.4.0/24','IGW','RTs','EC2: Bastion/App/DB'],
+    steps:['Create VPC/subnets','Attach IGW','Public RT: 0.0.0.0/0 → IGW','Associate RTs','Launch EC2s','SG rules (22/80 from your IP; private only from bastion)'],
+    tests:['Bastion → Internet works','Private no Internet','Private ↔ Private works'],
+    real:'Baseline landing zone. :contentReference[oaicite:14]{index=14}',
+    ascii:`Internet → IGW → Public EC2 (bastion) → Private EC2s`,
+    box:[{title:'🌍 User'},{title:'🌐 IGW'},'arrow',{title:'🛰️ Public EC2'},{title:'🔒 Private App'},'arrow',{title:'🗄️ Private DB'}]
   },
-
-  { id:'aws2', say:'Lab 2 – NAT gateway for private subnets', tag:'Lab-2 • Scenario-2', title:'Private Egress via NAT Gateway', outcome:'Private subnets reach Internet for updates without inbound exposure.', build:['Elastic IP + NAT Gateway in Public subnet','Private-RT: 0.0.0.0/0 → NAT GW'], steps:['Allocate EIP','Create NAT GW; attach EIP','Private-RT: add default → NAT GW','Keep DB SG least-privileged'], tests:['Private App apt/yum update succeeds','No inbound to private hosts'], real:'Patch private hosts safely.', ascii:`Private subnets default route → NAT GW; inbound to private remains blocked.`, box:[{title:'🔒 Private Subnets'},'arrow',{title:'🧭 RT 0.0.0.0/0 → NAT'},'arrow',{title:'🧱 NAT GW'},'arrow',{title:'🌐 Internet'}] },
-
-  { id:'aws3', say:'Lab 3 – three tier with A L B frontend backend and R D S', tag:'Lab-3 • Scenario-3', title:'3-Tier: ALB (Public) → App EC2 (Private) → RDS (Private)', outcome:'HTTPS via ALB to private app; DB isolated in DB subnets.', build:['ALB in public subnets (HTTPS via ACM). :contentReference[oaicite:12]{index=12}','App EC2 private target group','RDS in DB subnets; SG only from App SG'], steps:['Create ALB + HTTPS listener','Create Target Group; register App; health check /health','Create RDS; SG allows only App SG. :contentReference[oaicite:13]{index=13}'], tests:['ALB DNS loads UI; /api/health → 200','DB only from App SG'], real:'Matches your Architecture/Outcome pages. :contentReference[oaicite:14]{index=14} :contentReference[oaicite:15]{index=15}', ascii:`Internet ─HTTPS─> ALB → App EC2 → RDS (private)`, box:[{title:'🌐 ALB',desc:'HTTPS'},'arrow',{title:'⚙️ App',desc:'Private EC2'},'arrow',{title:'🗄️ RDS',desc:'Private DB'}] },
-
-  { id:'aws4', say:'Lab 4 – V P C endpoints S three and S S M', tag:'Lab-4 • Scenario-4', title:'VPC Endpoints: S3 Gateway + SSM Interface', outcome:'Private workloads reach AWS services on backbone without NAT.', build:['Gateway EP: S3','Interface EPs: SSM/SSMMessages/EC2Messages'], steps:['Create S3 Gateway EP + route prefixes','Create Interface EPs; enable private DNS','Use SSM Session Manager (no SSH)'], tests:['S3 access without public Internet','SSM shell works w/o public IP'], real:'Reduce egress & improve security.', ascii:`Private → S3 (Gateway EP); Private → SSM (Interface EP ENIs); all private.`, box:[{title:'🔒 Private EC2'},'arrow',{title:'🔗 Endpoints',desc:'S3 GW + SSM IF'},'arrow',{title:'🧠 AWS Services'}] },
-
-  { id:'aws5', say:'Lab 5 – V P C peering two V P C connectivity', tag:'Lab-5 • Scenario-5', title:'VPC Peering (non-transitive)', outcome:'Private IP connectivity across two VPCs.', build:['Peering request/accept','Routes both sides','No overlapping CIDRs'], steps:['Create peering A→B and accept','Route A→B via peering, B→A via peering','SGs allow traffic'], tests:['EC2 A↔B works via private IP','No transit to third VPC'], real:'Cross-team connectivity.', ascii:`VPC-A <── Peering + Routes ──> VPC-B`, box:[{title:'VPC-A',desc:'10.0.0.0/16'},'arrow',{title:'🤝 Peering'},'arrow',{title:'VPC-B',desc:'10.1.0.0/16'}] },
-
-  { id:'aws6', say:'Lab 6 – site to site V P N', tag:'Lab-6 • Scenario-6', title:'Site-to-Site VPN (CGW + VGW)', outcome:'Hybrid connectivity.', build:['Customer GW','Virtual Private GW','Static or BGP'], steps:['Create CGW','Create VGW & attach','Create VPN; download device config','Add routes to on-prem prefixes'], tests:['Private EC2 ↔ on-prem works','BGP routes learned'], real:'Hybrid LOB workloads.', ascii:`On-Prem ──IPSec/BGP── VGW ──> VPC`, box:[{title:'🏢 On-Prem'},'arrow',{title:'🔐 IPSec'},'arrow',{title:'☁️ VGW'}] },
-
-  { id:'aws7', say:'Lab 7 – transit gateway hub and spoke', tag:'Lab-7 • Scenario-7', title:'Transit Gateway (TGW) hub-and-spoke', outcome:'Central hub interconnects VPCs/VPN/DX.', build:['Create TGW & RTs','Attach VPCs','(Opt) attach VPN/DX'], steps:['Create TGW & TGW RT','Attach VPC-A,B','Associate/propagate routes','Update VPC RTs to TGW'], tests:['A↔B via TGW','Isolation where not associated'], real:'Scale beyond peering.', ascii:`VPC-A ─┐
-       ├─ TGW ─ VPC-B
-VPN/DX ─┘`, box:[{title:'VPC-A'},'arrow',{title:'🛞 TGW',desc:'segmentation'},'arrow',{title:'VPC-B'}] },
-
-  { id:'aws8', say:'Lab 8 – PrivateLink producer and consumer', tag:'Lab-8 • Scenario-8', title:'PrivateLink: Endpoint Service ↔ Interface Endpoint', outcome:'Private consumption without peering/TGW.', build:['Producer: NLB + Endpoint Service','Consumer: Interface Endpoint'], steps:['Producer allows consumer PRINCIPAL','Consumer creates IF Endpoint; private DNS','Test name + connectivity'], tests:['Consumer resolves private DNS & connects'], real:'Cross-account/internal marketplace.', ascii:`Producer: NLB → Endpoint Service === Interface Endpoint ← Consumer`, box:[{title:'Producer'},'arrow',{title:'📡 Endpoint Service'},'arrow',{title:'Consumer'}] },
-
-  { id:'aws9', say:'Lab 9 – Route 53 private hosted zones', tag:'Lab-9 • Scenario-9', title:'Route 53 Private Hosted Zones + Resolver In/Out', outcome:'Private DNS across VPC/on-prem.', build:['PHZ (corp.local)','Resolver inbound/outbound endpoints','Forward rules'], steps:['Create PHZ; associate VPCs','Create records','Inbound EP for on-prem; Outbound EP + rules to on-prem'], tests:['dig app.corp.local resolves privately','No public leak'], real:'Enterprise DNS hygiene.', ascii:`On-Prem ↔ Resolver Endpoints ↔ VPC ↔ PHZ (corp.local)`, box:[{title:'On-Prem'},'arrow',{title:'🧭 Resolver EPs'},'arrow',{title:'PHZ'}] },
-
-  { id:'aws10', say:'Lab 10 – Direct Connect with SiteLink', tag:'Lab-10 • Scenario-10', title:'Direct Connect + SiteLink', outcome:'Low-latency private connectivity to AWS; inter-site via SiteLink.', build:['DX + LOA-CFA','DXGW + Private VIF (BGP)','Attach to TGW; SiteLink for site↔site'], steps:['Order DX; cross-connect','Create DXGW + Private VIF; set BGP','Attach DXGW to TGW & propagate','Enable SiteLink if needed'], tests:['Traceroute uses DX','Latency/throughput improved'], real:'Predictable hybrid for prod data.', ascii:`On-Prem ==DX==> DXGW → TGW → VPCs  (SiteLink: site↔site)`, box:[{title:'🏢 On-Prem'},'arrow',{title:'🟨 DX'},'arrow',{title:'DXGW/TGW'},'arrow',{title:'VPCs'}] },
-
-  { id:'aws11', say:'Lab 11 – session manager bastionless operations', tag:'Lab-11 • Scenario-11', title:'Bastion via SSM (no SSH/keys)', outcome:'Operate private EC2 via SSM without opening port 22.', build:['SSM Agent + IAM role','VPC endpoints for SSM/EC2Messages/SSMMessages'], steps:['Attach IAM role to EC2','Create SSM Interface Endpoints; private DNS','Start Session Manager shell / port-forward'], tests:['Shell without SSH','DB port-forward test'], real:'Tight ops posture.', ascii:`Admin → SSM (AWS) → Private EC2 (no SSH, no public IP)`, box:[{title:'Admin'},'arrow',{title:'🔐 SSM'},'arrow',{title:'Private EC2'}] },
-
-  { id:'aws12', say:'Lab 12 – multi region D R pilot light', tag:'Lab-12 • Scenario-12', title:'Multi-Region DR (Pilot-Light)', outcome:'Core data replicated; minimal compute ready to scale on failover.', build:['RDS replica / cross-region','S3 CRR','Route 53 failover'], steps:['Enable DB replication','CRR + AMIs/templates in secondary','Failover records + health checks','Scale-up playbook'], tests:['Failover to secondary works','DB promotes; app scales'], real:'Balanced RTO/RPO at lower cost.', ascii:`Primary → replicate → Secondary; Route 53 failover`, box:[{title:'Primary'},'arrow',{title:'🔁 Replication'},'arrow',{title:'Secondary'}] },
-
-  { id:'aws13', say:'Lab 13 – final outcome end to end', tag:'Lab-13 • Scenario-Final', title:'Final Outcome: Internet → ALB → Frontend → Backend → RDS', outcome:'End-to-end verified against your Outcome page.', build:['ALB HTTPS','Frontend EC2 → Backend EC2 → RDS'], steps:['Open ALB DNS','Hit /api; verify DB reads/writes'], tests:['Page loads; API 200; DB persists','DB only from backend SG'], real:'Production-style 3-tier.', ascii:`Internet → ALB → Frontend EC2 → Backend EC2 → RDS`, box:[{title:'🌐 ALB'},'arrow',{title:'🖥️ Frontend'},'arrow',{title:'⚙️ Backend'},'arrow',{title:'🗄️ RDS'}] },
+  { id:'aws2',  say:'Lab 2: NAT Gateway egress', tag:'Lab-2', title:'Private Egress via NAT Gateway',
+    outcome:'Private subnets reach Internet for updates; inbound closed.',
+    build:['EIP','NAT GW in public subnet','Private RT: default → NAT GW'],
+    steps:['Allocate EIP','Create NAT GW','Edit Private RT default route'],
+    tests:['yum/apt update from private works','No inbound to private'],
+    real:'Secure patching.'
+  },
+  { id:'aws3',  say:'Lab 3: Three tier with A L B and R D S', tag:'Lab-3', title:'3-Tier: ALB (Public) → App EC2 (Private) → RDS (Private)',
+    outcome:'HTTPS via ALB; app private; DB isolated in DB subnets.',
+    build:['ALB HTTPS (ACM)','TG → App EC2','RDS in DB subnets; SG only from App'],
+    steps:['ALB + listener 443','TG + health check /health','RDS SG allows App SG'], tests:['ALB DNS → UI','/api → 200','DB private only'],
+    real:'Matches your Outcome page. :contentReference[oaicite:15]{index=15}', box:[{title:'🌐 ALB'},'arrow',{title:'⚙️ App'},'arrow',{title:'🗄️ RDS'}], ascii:`Internet—HTTPS→ALB→App→RDS`
+  },
+  { id:'aws4',  say:'Lab 4: V P C Endpoints S three and S S M', tag:'Lab-4', title:'VPC Endpoints: S3 (Gateway) + SSM (Interface)',
+    outcome:'Access AWS services privately without NAT.',
+    build:['S3 Gateway EP','SSM/EC2Messages/SSMMessages Interface EPs'],
+    steps:['Create S3 Gateway EP + RT prefixes','Create SSM IF EPs + Private DNS','Use Session Manager'],
+    tests:['S3 works w/o public egress','SSM shell works'], real:'Zero-egress posture.'
+  },
+  { id:'aws5',  say:'Lab 5: NAT Instance vs NAT Gateway', tag:'Lab-5', title:'NAT Instance vs NAT Gateway (compare)',
+    outcome:'Understand costs, HA, maintenance differences.',
+    build:['NAT Instance (t3.medium + iptables)','NAT GW + EIP'],
+    steps:['Launch NAT AMI & config IP forwarding','Swap Private RT → NAT instance','Then swap to NAT GW'],
+    tests:['Throughput check','Failover behavior'], real:'Prefer NAT GW for HA/ops.'
+  },
+  { id:'aws6',  say:'Lab 6: V P C Peering two V P Cs', tag:'Lab-6', title:'VPC Peering (non-transitive)',
+    outcome:'Private IP connectivity between VPC-A and VPC-B.',
+    build:['Create peering A↔B','Update routes both sides','SG allow'],
+    steps:['Request/accept peering','RTs add peer routes','SGs permit traffic'],
+    tests:['EC2 A↔B ping/curl','No transit to third VPC'], real:'Cross-team access.'
+  },
+  { id:'aws7',  say:'Lab 7: Transit Gateway hub and spoke', tag:'Lab-7', title:'Transit Gateway (TGW) hub-and-spoke',
+    outcome:'Scalable hub to connect multiple VPCs/VPN/DX.',
+    build:['Create TGW + RTs','Attach VPCs','Associate/propagate'],
+    steps:['Create TGW','Attach VPC-A,B','TGW RT: associate/propagate','VPC RT → TGW'],
+    tests:['A↔B via TGW','Segmentation by RT'], real:'Enterprise backplane.'
+  },
+  { id:'aws8',  say:'Lab 8: PrivateLink producer and consumer', tag:'Lab-8', title:'PrivateLink: Endpoint Service ↔ Interface Endpoint',
+    outcome:'Consume services privately without peering/TGW.',
+    build:['Producer: NLB + Endpoint Service','Consumer: IF Endpoint + Private DNS'],
+    steps:['Allow principal','Create endpoint + DNS'], tests:['Name resolves privately','TCP connects'], real:'Cross-account marketplace.'
+  },
+  { id:'aws9',  say:'Lab 9: V P N site to site', tag:'Lab-9', title:'Site-to-Site VPN (VGW/CGW)',
+    outcome:'Hybrid private connectivity.',
+    build:['CGW','VGW','BGP optional'], steps:['Create CGW & VGW','Create VPN & set BGP','Routes'], tests:['On-prem ↔ VPC works'], real:'Hybrid LOB.'
+  },
+  { id:'aws10', say:'Lab 10: Direct Connect with SiteLink', tag:'Lab-10', title:'Direct Connect + SiteLink',
+    outcome:'Low-latency private connectivity; site↔site via SiteLink.',
+    build:['DX + LOA-CFA','DXGW + Private VIF','Attach to TGW'], steps:['Order DX','Create DXGW/VIF (BGP)','Attach & propagate'], tests:['Traceroute via DX'], real:'Prod networks.'
+  },
+  { id:'aws11', say:'Lab 11: Route 53 private hosted zones', tag:'Lab-11', title:'Route 53 PHZ + Resolver In/Out',
+    outcome:'Private DNS across VPC/on-prem.', build:['PHZ corp.local','Resolver inbound/outbound'],
+    steps:['Create PHZ + records','Resolver endpoints + rules'], tests:['dig app.corp.local privately'], real:'Enterprise DNS.'
+  },
+  { id:'aws12', say:'Lab 12: S S M bastionless ops', tag:'Lab-12', title:'Bastionless Ops via SSM',
+    outcome:'Operate EC2 without SSH/keys.', build:['SSM role','SSM endpoints'],
+    steps:['Attach IAM role','Create IF EPs','Session Manager shell'], tests:['Shell works','Port-forward DB'], real:'Tight security.'
+  },
+  { id:'aws13', say:'Lab 13: E I C Endpoint', tag:'Lab-13', title:'EC2 Instance Connect Endpoint (EIC)',
+    outcome:'SSH to private EC2 without bastion or public IP.',
+    build:['Create EIC Endpoint','IAM perms'], steps:['Provision EIC','Use AWS Console → Connect'], tests:['Session opens over private'], real:'Modern ops.'
+  },
+  { id:'aws14', say:'Lab 14: V P C Lattice', tag:'Lab-14', title:'VPC Lattice for service-to-service',
+    outcome:'Consistent service networking + auth across VPCs.',
+    build:['Create Lattice service & target','Auth policy','Associate VPCs'],
+    steps:['Define service','Register targets','Set auth','DNS integration'],
+    tests:['App A → App B via Lattice'], real:'Microservice mesh-like.'
+  },
+  { id:'aws15', say:'Lab 15: IPv6 dual stack', tag:'Lab-15', title:'Enable IPv6 (dual-stack)',
+    outcome:'Public/Private subnets get /64; egress via Egress-Only IGW.',
+    build:['Add IPv6 CIDR to VPC/subnets','Egress-Only IGW'], steps:['Associate IPv6','Update routes','Test IPv6'], tests:['curl -6 works'], real:'Modern addressing.'
+  },
+  { id:'aws16', say:'Lab 16: Flow Logs + GuardDuty', tag:'Lab-16', title:'VPC Flow Logs + GuardDuty',
+    outcome:'Traffic visibility + threat detection.',
+    build:['Enable Flow Logs to CloudWatch/S3','Enable GuardDuty'], steps:['Flow Logs per VPC/subnet/ENI','GuardDuty enable + sample findings'], tests:['See flows; findings visible'], real:'Ops & Sec.'
+  },
+  { id:'aws17', say:'Lab 17: W A F, Shield, and A L B', tag:'Lab-17', title:'WAF/Shield in front of ALB',
+    outcome:'L7 protection and DDoS mitigation.', build:['WAF web ACL','Attach to ALB','Shield Advanced (opt)'],
+    steps:['Create rules/bot control','Associate with ALB'], tests:['Blocked path returns 403'], real:'Internet-facing hardening.'
+  },
+  { id:'aws18', say:'Lab 18: Global Accelerator + Multi-Region DR', tag:'Lab-18', title:'GA + Multi-Region DR (Pilot-Light)',
+    outcome:'Static anycast entry; DR region ready.',
+    build:['Global Accelerator','ALB endpoints per region','RDS read replica / backups','Route 53 failover'],
+    steps:['Create GA + listeners','Add ALB endpoints','Replicate data','Health checks + failover'],
+    tests:['GA DNS steady IP','Regional failover OK'], real:'Resilient edge.'
+  },
 ];
 
-/* GCP */
+/* GCP (sample set) */
 const GCP_LABS = [
-  { id:'g1', say:'G C P lab 1 – core V P C', tag:'Lab-1', title:'Custom VPC + Public/Private + Cloud NAT', outcome:'Public subnet Internet; private egress via Cloud NAT.', build:['VPC 10.10.0.0/16','Public 10.10.1.0/24; Private 10.10.3.0/24 & 10.10.4.0/24','Cloud Router + Cloud NAT','Bastion public; app/db private'], steps:['Create VPC/subnets','Bastion VM/public IP','Cloud Router + NAT (select subnets)','Firewall rules'], tests:['Private VM updates via NAT','No inbound to private VMs'], real:'Baseline landing zone.', ascii:`User → Internet → Bastion → private VMs; private egress → Cloud NAT`, box:[{title:'Bastion'},'arrow',{title:'Private VMs'},'arrow',{title:'Cloud NAT'}] },
-  { id:'g2', say:'G C P lab 2 – HTTPS load balancer', tag:'Lab-2', title:'External HTTPS LB → Private App (MIG) → Cloud SQL', outcome:'Global HTTPS LB fronts private app; DB private.', build:['MIG for app','ILB/NEG to private','Cloud SQL private IP'], steps:['Create MIG','Create ILB/NEG & hook to HTTPS LB','Create Cloud SQL private IP; authorize VPC'], tests:['LB URL → UI','/api → 200','SQL only from app'], real:'3-tier on GCP.', ascii:`User ─HTTPS─> LB ──> Private App ──SQL──> Cloud SQL`, box:[{title:'HTTPS LB'},'arrow',{title:'App MIG'},'arrow',{title:'Cloud SQL'}] },
-  { id:'g3', say:'G C P lab 3 – Private Service Connect', tag:'Lab-3', title:'Private Service Connect (PSC)', outcome:'Private consumer ↔ producer across projects.', build:['Producer service attachment','Consumer PSC endpoint + private DNS'], steps:['Producer allows consumer','Consumer endpoint + DNS'], tests:['Consumer resolves private & connects'], real:'Cross-project services.', ascii:`Producer ==PSC==> Consumer (private)`, box:[{title:'Producer'},'arrow',{title:'PSC'},'arrow',{title:'Consumer'}] },
-  { id:'g4', say:'G C P lab 4 – site to site V P N', tag:'Lab-4', title:'Cloud VPN (IPSec/BGP)', outcome:'Hybrid connectivity.', build:['Cloud VPN','Cloud Router (BGP)'], steps:['Create VPN gateway','Configure BGP on Cloud Router','Update firewall/routes'], tests:['Private VM ↔ on-prem works','BGP routes learned'], real:'Hybrid LOB.', ascii:`On-Prem ──IPSec/BGP── Cloud VPN ──> VPC`, box:[{title:'On-Prem'},'arrow',{title:'Cloud VPN'},'arrow',{title:'VPC'}] },
+  { id:'g1', say:'G C P lab 1: Core V P C with Cloud N A T', tag:'Lab-1', title:'Custom VPC + Public/Private + Cloud NAT',
+    outcome:'Private egress via Cloud NAT; bastion for admin.',
+    build:['VPC 10.10.0.0/16','Public 10.10.1.0/24','Private 10.10.3.0/24 & 10.10.4.0/24','Cloud Router + Cloud NAT'],
+    steps:['Create VPC/subnets','Bastion with public IP','Cloud Router + NAT','Firewall rules'],
+    tests:['Private VM updates via NAT'], real:'Baseline.'
+  },
+  { id:'g2', say:'G C P lab 2: HTTPS load balancer', tag:'Lab-2', title:'HTTPS LB → Private App MIG → Cloud SQL (private IP)',
+    outcome:'Global HTTPS LB fronts private app; DB private.',
+    build:['MIG','NEG/ILB to private','Cloud SQL private IP'],
+    steps:['Create MIG','Create NEG/ILB','Hook to HTTPS LB','Create Cloud SQL private IP'],
+    tests:['LB URL → UI','/api → 200'], real:'3-tier on GCP.'
+  },
+  { id:'g3', say:'G C P lab 3: Private Service Connect', tag:'Lab-3', title:'Private Service Connect (PSC)',
+    outcome:'Private consumer ↔ producer across projects.',
+    build:['Producer attachment','Consumer PSC endpoint + DNS'],
+    steps:['Allow consumer','Create endpoint + DNS'], tests:['Private connect OK'], real:'Cross-project.'
+  },
+  { id:'g4', say:'G C P lab 4: Cloud V P N', tag:'Lab-4', title:'Cloud VPN (IPSec/BGP)',
+    outcome:'Hybrid connectivity.', build:['VPN','Cloud Router (BGP)'],
+    steps:['Create VPN gateway','Set BGP','Routes + FW'], tests:['On-prem ↔ VPC works'], real:'Hybrid LOB.'
+  },
 ];
 
-/* Azure */
+/* Azure (sample set) */
 const AZURE_LABS = [
-  { id:'a1', say:'Azure lab 1 – core V Net', tag:'Lab-1', title:'VNet + Public/Private + NAT Gateway', outcome:'Public subnet Internet; private egress via NAT GW.', build:['VNet 10.20.0.0/16','Public 10.20.1.0/24; Private 10.20.3.0/24 & 10.20.4.0/24','NAT GW for private','Bastion public; app/db private'], steps:['Create VNet/subnets','Public IP + NAT GW; associate to private','NSGs: SSH/HTTP to bastion; internal rules'], tests:['Private VMs update via NAT','No inbound to private'], real:'Azure baseline.', ascii:`User → Internet → Bastion → private VMs; private egress → NAT GW`, box:[{title:'Bastion'},'arrow',{title:'Private VMs'},'arrow',{title:'NAT GW'}] },
-  { id:'a2', say:'Azure lab 2 – Application Gateway', tag:'Lab-2', title:'App Gateway (HTTPS) → Private App → Azure SQL (PE)', outcome:'HTTPS WAF/AppGW fronts private app; DB via Private Endpoint.', build:['AppGW + cert','Backend pool private VMs/VMSS','Azure SQL private endpoint'], steps:['Deploy AppGW + cert','Backend pool + probes','Private Endpoint for SQL; map DNS'], tests:['AppGW URL → UI','/api → 200','SQL only via private endpoint'], real:'3-tier on Azure.', ascii:`User ─HTTPS─> AppGW ──> Private App ──SQL──> Azure SQL (PE)`, box:[{title:'App GW'},'arrow',{title:'Private App'},'arrow',{title:'Azure SQL (PE)'}] },
-  { id:'a3', say:'Azure lab 3 – Private Link', tag:'Lab-3', title:'Provider PLS ↔ Consumer Private Endpoint', outcome:'Private consumption across VNets/subscriptions.', build:['Provider: SLB + PLS','Consumer: Private Endpoint + pvt DNS'], steps:['Provider exposes PLS & approves','Consumer creates PE + DNS link'], tests:['Name resolves privately; app connects'], real:'Provider/consumer model.', ascii:`Provider (PLS) === Private Endpoint (consumer)`, box:[{title:'Provider PLS'},'arrow',{title:'Private Endpoint'},'arrow',{title:'Consumer'}] },
-  { id:'a4', say:'Azure lab 4 – VPN or ExpressRoute', tag:'Lab-4', title:'Site-to-Site VPN; note ER private peering', outcome:'Hybrid connectivity; ER for prod private peering.', build:['VNet Gateway (VPN/ER)','Local Network Gateway','BGP optional'], steps:['Deploy VNet Gateway','Create connection to Local Network Gateway','UDRs/firewall updates'], tests:['Private VM ↔ on-prem works','BGP routes learned'], real:'Hybrid LOB.', ascii:`On-Prem ──IPSec/BGP── VNet Gateway ──> VNet`, box:[{title:'On-Prem'},'arrow',{title:'VNet Gateway'},'arrow',{title:'VNet'}] },
+  { id:'a1', say:'Azure lab 1: Core V Net with NAT Gateway', tag:'Lab-1', title:'VNet + Public/Private + NAT Gateway',
+    outcome:'Private egress via NAT GW.', build:['VNet 10.20.0.0/16','Public 10.20.1.0/24','Private 10.20.3.0/24 & 10.20.4.0/24','NAT GW'],
+    steps:['Create VNet/subnets','NAT GW + IP','Associate to private','NSG rules'],
+    tests:['Private VM update via NAT'], real:'Azure baseline.'
+  },
+  { id:'a2', say:'Azure lab 2: App Gateway and Private Endpoint', tag:'Lab-2', title:'App Gateway (HTTPS) → Private App → Azure SQL (PE)',
+    outcome:'HTTPS/WAF front; DB via Private Endpoint.',
+    build:['AppGW + cert','Backend pool private','Azure SQL PE'],
+    steps:['Deploy AppGW','Pool + probe','Private Endpoint + DNS'], tests:['AppGW URL works','DB only via PE'], real:'3-tier.'
+  },
+  { id:'a3', say:'Azure lab 3: Private Link provider consumer', tag:'Lab-3', title:'Private Link: Provider PLS ↔ Private Endpoint',
+    outcome:'Private consumption across VNets/subscriptions.',
+    build:['Provider PLS','Consumer Private Endpoint + DNS'],
+    steps:['Expose PLS & approve','Create PE + DNS'], tests:['Private connect OK'], real:'Provider/consumer.'
+  },
+  { id:'a4', say:'Azure lab 4: V P N or ExpressRoute', tag:'Lab-4', title:'Site-to-Site VPN; note ER private peering',
+    outcome:'Hybrid connectivity.', build:['VNet Gateway','Local Network Gateway','BGP opt'],
+    steps:['Deploy VNet GW','Create connection','UDRs/NSG'], tests:['On-prem ↔ VNet works'], real:'Hybrid LOB.'
+  },
 ];
 
-/* ========== Renderers ========== */
+/* ===== Scenario lists & detail fillers ===== */
 function makeList(container, labs, onClick){
   container.innerHTML='';
   labs.forEach((L,idx)=>{
@@ -510,9 +648,8 @@ function makeList(container, labs, onClick){
 }
 function fillDetail(prefix, labs, idx){
   const L = labs[idx];
-  document.getElementById(prefix+'Tag').textContent = L.tag;
-  document.getElementById(prefix+'Title').textContent = L.title;
-  document.getElementById(prefix+'Outcome').textContent = L.outcome;
+  document.getElementById(prefix+'Tag').textContent = L.tag || '';
+  document.getElementById(prefix+'Title').textContent = L.title || '';
   const buildEl = document.getElementById(prefix+'Build');
   const stepsEl = document.getElementById(prefix+'Steps');
   const testsEl = document.getElementById(prefix+'Tests');
@@ -520,40 +657,55 @@ function fillDetail(prefix, labs, idx){
   const asciiEl = document.getElementById(prefix+'Diagram');
   const boxEl = document.getElementById(prefix+'Box');
 
-  buildEl.innerHTML=''; L.build.forEach(x=>{const li=document.createElement('li'); li.textContent=x; buildEl.appendChild(li);});
-  stepsEl.innerHTML=''; L.steps.forEach(x=>{const li=document.createElement('li'); li.textContent=x; stepsEl.appendChild(li);});
-  testsEl.innerHTML=''; L.tests.forEach(x=>{const li=document.createElement('li'); li.textContent=x; testsEl.appendChild(li);});
-  realEl.textContent = L.real || '';
-  asciiEl.textContent = L.ascii || '';
+  if(buildEl){ buildEl.innerHTML=''; (L.build||[]).forEach(x=>{const li=document.createElement('li'); li.textContent=x; buildEl.appendChild(li);}); }
+  if(stepsEl){ stepsEl.innerHTML=''; (L.steps||[]).forEach(x=>{const li=document.createElement('li'); li.textContent=x; stepsEl.appendChild(li);}); }
+  if(testsEl){ testsEl.innerHTML=''; (L.tests||[]).forEach(x=>{const li=document.createElement('li'); li.textContent=x; testsEl.appendChild(li);}); }
+  if(realEl){ realEl.textContent = L.real || ''; }
+  if(asciiEl){ asciiEl.textContent = L.ascii || ''; }
   if(boxEl) renderBox(boxEl, L.box || []);
 }
 
-/* ========== AWS wiring ========== */
-const awsList = document.getElementById('awsList');
-let awsIdx = 0;
-makeList(awsList, AWS_LABS, (i,L)=>{ awsIdx=i; fillDetail('aws', AWS_LABS, awsIdx); navTo('aws'); speak(L.say || L.tag); });
-function awsPrev(){ awsIdx=(awsIdx-1+AWS_LABS.length)%AWS_LABS.length; fillDetail('aws', AWS_LABS, awsIdx); speak(AWS_LABS[awsIdx].say || AWS_LABS[awsIdx].tag); }
-function awsNext(){ awsIdx=(awsIdx+1)%AWS_LABS.length; fillDetail('aws', AWS_LABS, awsIdx); speak(AWS_LABS[awsIdx].say || AWS_LABS[awsIdx].tag); }
+/* ===== AWS wiring ===== */
+const awsList = document.getElementById('awsList'); let awsIdx = 0;
+makeList(awsList, AWS_LABS, (i,L)=>{ awsIdx=i; fillDetail('aws', AWS_LABS, awsIdx); navTo('aws'); speak(L.say || L.tag || L.title); });
+function awsPrev(){ awsIdx=(awsIdx-1+AWS_LABS.length)%AWS_LABS.length; fillDetail('aws', AWS_LABS, awsIdx); speak(AWS_LABS[awsIdx].say || AWS_LABS[awsIdx].tag || AWS_LABS[awsIdx].title); }
+function awsNext(){ awsIdx=(awsIdx+1)%AWS_LABS.length; fillDetail('aws', AWS_LABS, awsIdx); speak(AWS_LABS[awsIdx].say || AWS_LABS[awsIdx].tag || AWS_LABS[awsIdx].title); }
 
-/* ========== GCP wiring ========== */
-const gcpList = document.getElementById('gcpList');
-let gcpIdx = 0;
-makeList(gcpList, GCP_LABS, (i,L)=>{ gcpIdx=i; fillDetail('gcp', GCP_LABS, gcpIdx); navTo('gcp'); speak(L.say || L.tag); });
-function gcpPrev(){ gcpIdx=(gcpIdx-1+GCP_LABS.length)%GCP_LABS.length; fillDetail('gcp', GCP_LABS, gcpIdx); speak(GCP_LABS[gcpIdx].say || GCP_LABS[gcpIdx].tag); }
-function gcpNext(){ gcpIdx=(gcpIdx+1)%GCP_LABS.length; fillDetail('gcp', GCP_LABS, gcpIdx); speak(GCP_LABS[gcpIdx].say || GCP_LABS[gcpIdx].tag); }
+/* ===== GCP wiring ===== */
+const gcpList = document.getElementById('gcpList'); let gcpIdx = 0;
+makeList(gcpList, GCP_LABS, (i,L)=>{ gcpIdx=i; fillDetail('gcp', GCP_LABS, gcpIdx); navTo('gcp'); speak(L.say || L.tag || L.title); });
+function gcpPrev(){ gcpIdx=(gcpIdx-1+GCP_LABS.length)%GCP_LABS.length; fillDetail('gcp', GCP_LABS, gcpIdx); speak(GCP_LABS[gcpIdx].say || GCP_LABS[gcpIdx].tag || GCP_LABS[gcpIdx].title); }
+function gcpNext(){ gcpIdx=(gcpIdx+1)%GCP_LABS.length; fillDetail('gcp', GCP_LABS, gcpIdx); speak(GCP_LABS[gcpIdx].say || GCP_LABS[gcpIdx].tag || GCP_LABS[gcpIdx].title); }
 
-/* ========== Azure wiring ========== */
-const azureList = document.getElementById('azureList');
-let azureIdx = 0;
-makeList(azureList, AZURE_LABS, (i,L)=>{ azureIdx=i; fillDetail('azure', AZURE_LABS, azureIdx); navTo('azure'); speak(L.say || L.tag); });
-function azurePrev(){ azureIdx=(azureIdx-1+AZURE_LABS.length)%AZURE_LABS.length; fillDetail('azure', AZURE_LABS, azureIdx); speak(AZURE_LABS[azureIdx].say || AZURE_LABS[azureIdx].tag); }
-function azureNext(){ azureIdx=(azureIdx+1)%AZURE_LABS.length; fillDetail('azure', AZURE_LABS, azureIdx); speak(AZURE_LABS[azureIdx].say || AZURE_LABS[azureIdx].tag); }
+/* ===== Azure wiring ===== */
+const azureList = document.getElementById('azureList'); let azureIdx = 0;
+makeList(azureList, AZURE_LABS, (i,L)=>{ azureIdx=i; fillDetail('azure', AZURE_LABS, azureIdx); navTo('azure'); speak(L.say || L.tag || L.title); });
+function azurePrev(){ azureIdx=(azureIdx-1+AZURE_LABS.length)%AZURE_LABS.length; fillDetail('azure', AZURE_LABS, azureIdx); speak(AZURE_LABS[azureIdx].say || AZURE_LABS[azureIdx].tag || AZURE_LABS[azureIdx].title); }
+function azureNext(){ azureIdx=(azureIdx+1)%AZURE_LABS.length; fillDetail('azure', AZURE_LABS, azureIdx); speak(AZURE_LABS[azureIdx].say || AZURE_LABS[azureIdx].tag || AZURE_LABS[azureIdx].title); }
 
-/* ===== Default: show Home, pre-render first lab in each for instant load ===== */
+/* ===== Differences – voice topics ===== */
+const DIFF_TOPICS = [
+  {t:'CIDR at creation', d:'In A W S and Azure, you choose V P C or V Net C I D R during creation. In G C P, the default V P C exists and you usually define C I D R on subnets when customizing networks.'},
+  {t:'Internet objects', d:'A W S uses an Internet Gateway plus route tables. G C P relies on default system routes and external I P. Azure uses system routes with public I P; no separate I G W object.'},
+  {t:'Private egress', d:'A W S: N A T Gateway or instance. G C P: Cloud N A T with Cloud Router. Azure: N A T Gateway associated to subnets.'},
+  {t:'Private services', d:'A W S PrivateLink, G C P Private Service Connect, Azure Private Link—same idea, different setup flows.'},
+  {t:'Cross networking', d:'A W S Transit Gateway, G C P Cloud Router plus V P N/Interconnect, Azure Virtual W A N Hub.'},
+  {t:'DNS private', d:'Route 53 P H Z, Cloud D N S private zones, Azure Private D N S zones.'},
+];
+const diffList = document.getElementById('diffList');
+DIFF_TOPICS.forEach((x,i)=>{
+  const it=document.createElement('div');
+  it.className='item reveal'; it.style.animationDelay=`${i*0.04}s`;
+  it.innerHTML=`<strong>${x.t}</strong><br><span class="small">${x.d.slice(0,90)}...</span>`;
+  it.onclick=()=>{ document.getElementById('diffTitle').textContent=x.t; document.getElementById('diffBody').textContent=x.d; navTo('diff'); speak(x.t + '. ' + x.d); };
+  diffList.appendChild(it);
+});
+
+/* ===== Default: Home, and pre-render first lab so details appear instantly ===== */
 setActiveTab('home');
-fillDetail('aws', AWS_LABS, awsIdx);
-fillDetail('gcp', GCP_LABS, gcpIdx);
-fillDetail('azure', AZURE_LABS, azureIdx);
+fillDetail('aws', AWS_LABS, 0);
+fillDetail('gcp', GCP_LABS, 0);
+fillDetail('azure', AZURE_LABS, 0);
 </script>
 </body>
 </html>
